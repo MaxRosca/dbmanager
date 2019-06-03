@@ -14,31 +14,68 @@ class dataBase():
         this.conn = sqlite3.connect(this.dbname)
         this.c = this.conn.cursor()
     
+    def open(this):
+        this.conn = sqlite3.connect(this.dbname)
+        this.c = this.conn.cursor()
+    
+    def close(this):
+        this.c.close()
+        this.conn.close()
+
     def insert(this, args):
+        this.open()
         try:
             var_string = ', '.join('?' * len(args))
             query_string = 'INSERT INTO {} VALUES ({});'.format(this.tablename, var_string)
 
             this.c.execute(query_string, args)
             this.conn.commit()
+            this.close()
             return 0
         except Exception as e:
-            if('name' in str(e)):
+            this.close()
+            if 'name' in str(e):
                 return "name"
-            elif('id' in str(e)):
+            elif 'id' in str(e):
                 return 'id'
-            else:
-                return 'error'
             
-    def getValue(this, s, value):
-        this.c.execute("SELECT {} FROM {} WHERE id={}".format(str(value), str(this.tablename), s))
+    def getValue(this, searchCategory, category, value):
+        this.open()
+        this.c.execute("SELECT {} FROM {} WHERE {}={}".format(str(searchCategory), str(this.tablename), category, value))
         name = this.c.fetchall()
+        this.close()
         return name[0][0]
 
     def changeValue(this, category, newValue, scategory, sValue):
-        this.c.execute("UPDATE {} SET {} = {} WHERE {} = {}".format(this.tablename, category, newValue, scategory, sValue))
-        this.conn.commit()
+        this.open()
+        try:
+            this.c.execute("UPDATE {} SET {} = {} WHERE {} = {}".format(this.tablename, category, newValue, scategory, sValue))
+            this.conn.commit()
+            this.close()
+            return 0
+        except Exception as e:
+            return e
+        return 0
 
     def deleteColumn(this, category, value):
-        this.c.execute("DELETE FROM {} WHERE {} = {}".format(this.tablename, category, value))
-        this.conn.commit()
+        this.open()
+        try:
+            this.c.execute("DELETE FROM {} WHERE {} = {}".format(this.tablename, category, value))
+            this.conn.commit()
+            this.close()
+            return 0
+        except Exception as e:
+            this.close()
+            return e
+
+    def getAll(this):
+        this.open()
+        this.c.execute("SELECT * FROM {}".format(this.tablename))
+        result = this.c.fetchall()
+        this.close()
+        return result
+
+    def addColumn(this, name, type1):
+        this.open()
+        this.c.execute("ALTER TABLE {} ADD COLUMN {} {};".format(this.tablename, name, type1))
+        this.close()
